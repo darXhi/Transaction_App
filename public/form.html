@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Form Transaksi</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header><a href="index.html">Data Transaksi</a></header>
+  <main>
+    <h1 id="form-title">Tambah Data</h1>
+    <div class="form-container">
+      <div id="message-area"></div>
+      <div class="form-field"><label for="productID">Product ID</label><input id="productID"></div>
+      <div class="form-field"><label for="productName">Product Name</label><input id="productName"></div>
+      <div class="form-field"><label for="amount">Amount</label><input id="amount" type="number" min="0" step="1"></div>
+      <div class="form-field"><label for="customerName">Customer Name</label><input id="customerName"></div>
+      <div class="form-field"><label for="status">Status</label><select id="status"></select></div>
+      <div class="form-field"><label for="transactionDate">Transaction Date</label><input id="transactionDate" type="datetime-local" step="1"></div>
+      <div class="button-group">
+        <button class="primary" id="save-button">Simpan</button>
+        <a class="button" href="index.html">Batal</a>
+      </div>
+    </div>
+  </main>
+  <script src="common.js"></script>
+  <script>
+    const transactionId = getTransactionIdFromUrl();
+    const getElement = (elementId) => document.getElementById(elementId);
+
+    function showMessage(messageText) {
+      getElement('message-area').innerHTML = messageText
+        ? `<div class="message-box">${escapeHtml(messageText)}</div>`
+        : '';
+    }
+
+    // "2022-07-10 11:14:52" (database) <-> "2022-07-10T11:14:52" (input datetime-local)
+    function toDatetimeLocalValue(transactionDate) {
+      return transactionDate.replace(' ', 'T');
+    }
+    function fromDatetimeLocalValue(datetimeLocalValue) {
+      const valueWithSeconds = datetimeLocalValue.length === 16 ? datetimeLocalValue + ':00' : datetimeLocalValue;
+      return valueWithSeconds.replace('T', ' ');
+    }
+
+    async function initializeForm() {
+      const statusList = await requestApi('/api/status');
+      getElement('status').innerHTML = statusList
+        .map((statusItem) => `<option value="${statusItem.id}">${escapeHtml(statusItem.name)}</option>`)
+        .join('');
+
+      if (!transactionId) return;
+
+      getElement('form-title').textContent = 'Edit Data #' + transactionId;
+      try {
+        const transaction = await requestApi('/api/transactions/' + transactionId);
+        getElement('productID').value = transaction.productID;
+        getElement('productName').value = transaction.productName;
+        getElement('amount').value = transaction.amount;
+        getElement('customerName').value = transaction.customerName;
+        getElement('status').value = transaction.status;
+        getElement('transactionDate').value = toDatetimeLocalValue(transaction.transactionDate);
+      } catch (error) {
+        showMessage(error.message);
+        getElement('save-button').disabled = true;
+      }
+    }
+
+    getElement('save-button').onclick = async () => {
+      showMessage('');
+      const requestBody = {
+        productID: getElement('productID').value,
+        productName: getElement('productName').value,
+        amount: getElement('amount').value,
+        customerName: getElement('customerName').value,
+        status: getElement('status').value,
+        transactionDate: fromDatetimeLocalValue(getElement('transactionDate').value),
+      };
+      const requestUrl = transactionId ? '/api/transactions/' + transactionId : '/api/transactions';
+      const requestMethod = transactionId ? 'PUT' : 'POST';
+
+      try {
+        const savedTransaction = await requestApi(requestUrl, { method: requestMethod, body: requestBody });
+        window.location.href = 'detail.html?id=' + savedTransaction.id;
+      } catch (error) {
+        showMessage(error.message);
+      }
+    };
+
+    initializeForm();
+  </script>
+</body>
+</html>

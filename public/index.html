@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Data Transaksi</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header><a href="index.html">Data Transaksi</a></header>
+  <main>
+    <div class="toolbar">
+      <h1>Daftar Transaksi</h1>
+      <a class="button primary" href="form.html">Tambah Data</a>
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th><th>Product ID</th><th>Product Name</th><th class="number">Amount</th>
+            <th>Customer</th><th>Status</th><th>Tanggal Transaksi</th><th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="transaction-table-body"><tr><td colspan="8">Memuat...</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+  <script src="common.js"></script>
+  <script>
+
+    function groupTransactionsByYearAndMonth(transactionList) {
+      const groupedTransactions = {};
+      const sortedTransactions = transactionList
+        .slice()
+        .sort((firstTransaction, secondTransaction) =>
+          firstTransaction.transactionDate.localeCompare(secondTransaction.transactionDate));
+
+      sortedTransactions.forEach((transaction) => {
+        const year = transaction.transactionDate.slice(0, 4);
+        const month = Number(transaction.transactionDate.slice(5, 7));
+        if (!groupedTransactions[year]) groupedTransactions[year] = {};
+        if (!groupedTransactions[year][month]) groupedTransactions[year][month] = [];
+        groupedTransactions[year][month].push(transaction);
+      });
+      return groupedTransactions;
+    }
+
+    function buildTransactionRow(transaction) {
+      return `<tr>
+        <td>${transaction.id}</td>
+        <td>${escapeHtml(transaction.productID)}</td>
+        <td>${escapeHtml(transaction.productName)}</td>
+        <td class="number">${formatRupiah(transaction.amount)}</td>
+        <td>${escapeHtml(transaction.customerName)}</td>
+        <td>${escapeHtml(transaction.statusName)}</td>
+        <td>${transaction.transactionDate}</td>
+        <td class="action-links">
+          <a href="detail.html?id=${transaction.id}">Detail</a>
+          <a href="form.html?id=${transaction.id}">Edit</a>
+        </td>
+      </tr>`;
+    }
+
+    async function loadTransactions() {
+      const tableBody = document.getElementById('transaction-table-body');
+      try {
+        const transactionList = await requestApi('/api/transactions');
+        if (!transactionList.length) {
+          tableBody.innerHTML = '<tr><td colspan="8">Belum ada data</td></tr>';
+          return;
+        }
+
+        const groupedTransactions = groupTransactionsByYearAndMonth(transactionList);
+        let tableHtml = '';
+
+        Object.keys(groupedTransactions).sort().forEach((year) => {
+          tableHtml += `<tr class="year-row"><td colspan="8">Tahun ${year}</td></tr>`;
+
+          Object.keys(groupedTransactions[year])
+            .sort((firstMonth, secondMonth) => firstMonth - secondMonth)
+            .forEach((month) => {
+              const monthTransactions = groupedTransactions[year][month];
+              const totalAmount = monthTransactions.reduce(
+                (runningTotal, transaction) => runningTotal + transaction.amount, 0);
+
+              tableHtml += `<tr class="month-row"><td colspan="8">${MONTH_NAMES[month - 1]} ${year}
+                &mdash; ${monthTransactions.length} data, total ${formatRupiah(totalAmount)}</td></tr>`;
+              monthTransactions.forEach((transaction) => {
+                tableHtml += buildTransactionRow(transaction);
+              });
+            });
+        });
+        tableBody.innerHTML = tableHtml;
+      } catch (error) {
+        tableBody.innerHTML = `<tr><td colspan="8">Gagal memuat data: ${escapeHtml(error.message)}</td></tr>`;
+      }
+    }
+
+    loadTransactions();
+  </script>
+</body>
+</html>

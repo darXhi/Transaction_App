@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Detail Transaksi</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header><a href="index.html">Data Transaksi</a></header>
+  <main>
+    <h1>Detail Data</h1>
+    <div class="detail-container">
+      <div id="message-area"></div>
+      <dl id="detail-information"></dl>
+      <div class="button-group">
+        <a class="button" href="index.html">Kembali</a>
+        <a class="button primary" id="edit-button" href="#">Edit</a>
+        <button id="delete-button">Hapus</button>
+      </div>
+    </div>
+  </main>
+  <script src="common.js"></script>
+  <script>
+    const transactionId = getTransactionIdFromUrl();
+    const editButton = document.getElementById('edit-button');
+    const deleteButton = document.getElementById('delete-button');
+    editButton.href = 'form.html?id=' + transactionId;
+
+    async function loadTransactionDetail() {
+      try {
+        const transaction = await requestApi('/api/transactions/' + transactionId);
+        const detailRows = [
+          ['ID', transaction.id],
+          ['Product ID', transaction.productID],
+          ['Product Name', transaction.productName],
+          ['Amount', formatRupiah(transaction.amount)],
+          ['Customer Name', transaction.customerName],
+          ['Status', transaction.statusName],
+          ['Transaction Date', transaction.transactionDate],
+          ['Created By', transaction.createBy],
+          ['Created On', transaction.createOn],
+        ];
+        document.getElementById('detail-information').innerHTML = detailRows
+          .map(([label, value]) => `<dt>${label}</dt><dd>${escapeHtml(value)}</dd>`)
+          .join('');
+      } catch (error) {
+        document.getElementById('message-area').innerHTML =
+          `<div class="message-box">${escapeHtml(error.message)}</div>`;
+        editButton.style.display = 'none';
+        deleteButton.style.display = 'none';
+      }
+    }
+
+    deleteButton.onclick = async () => {
+      if (!confirm('Hapus data ini?')) return;
+      try {
+        await requestApi('/api/transactions/' + transactionId, { method: 'DELETE' });
+        window.location.href = 'index.html';
+      } catch (error) {
+        alert(error.message);
+      }
+    };
+
+    loadTransactionDetail();
+  </script>
+</body>
+</html>
