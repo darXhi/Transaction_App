@@ -30,10 +30,8 @@
 
     function groupTransactionsByYearAndMonth(transactionList) {
       const groupedTransactions = {};
-      const sortedTransactions = transactionList
-        .slice()
-        .sort((firstTransaction, secondTransaction) =>
-          firstTransaction.transactionDate.localeCompare(secondTransaction.transactionDate));
+      const sortedTransactions = transactionList.slice().sort((firstTransaction, secondTransaction) =>
+                                    firstTransaction.transactionDate.localeCompare(secondTransaction.transactionDate));
 
       sortedTransactions.forEach((transaction) => {
         const year = transaction.transactionDate.slice(0, 4);
@@ -76,12 +74,9 @@
         Object.keys(groupedTransactions).sort().forEach((year) => {
           tableHtml += `<tr class="year-row"><td colspan="8">Tahun ${year}</td></tr>`;
 
-          Object.keys(groupedTransactions[year])
-            .sort((firstMonth, secondMonth) => firstMonth - secondMonth)
-            .forEach((month) => {
+          Object.keys(groupedTransactions[year]).sort((firstMonth, secondMonth) => firstMonth - secondMonth).forEach((month) => {
               const monthTransactions = groupedTransactions[year][month];
-              const totalAmount = monthTransactions.reduce(
-                (runningTotal, transaction) => runningTotal + transaction.amount, 0);
+              const totalAmount = monthTransactions.reduce((runningTotal, transaction) => runningTotal + transaction.amount, 0);
 
               tableHtml += `<tr class="month-row"><td colspan="8">${MONTH_NAMES[month - 1]} ${year}
                 &mdash; ${monthTransactions.length} data, total ${formatRupiah(totalAmount)}</td></tr>`;
