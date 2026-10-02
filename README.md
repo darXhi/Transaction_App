@@ -1,5 +1,7 @@
+How to start server
+
 ```bash
 npm install
 npm start
 ```
-Buka http://localhost:3000
+Open http://localhost:3000
